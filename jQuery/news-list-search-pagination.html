@@ -1,0 +1,284 @@
+<div id="search-bar">
+    <input type="text" id="search-input" placeholder="Search news...">
+    <button id="search-btn">Search</button>
+</div>
+
+<div id="news-container"></div>
+<div id="pagination"></div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(function() {
+        // TODO: Put in your API key
+        const apiKey = '';
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentQuery = "";
+        const resultsPerPage = 10; // how many articles you want per page
+
+        // TODO: Adjust parameters to suit your needs
+        // See https://api.dvidshub.net/docs/search_api
+        var params = {
+            'cocom': 'USSOUTHCOM',
+            'type': 'news',
+            'sort': 'publishdate',
+            'sortdir': 'desc',
+            'thumb_width': 250,
+            'max_results': resultsPerPage,
+            'api_key': apiKey
+        };
+
+        function fetchNews(page = 1, query = '') {
+            params['page'] = currentPage;
+
+            if (query !== '') {
+                params['q'] = query
+            } else if('q' in params) {
+                delete params.q
+            }
+
+            $.getJSON(`https://api.dvidshub.net/search`, params, function(data) {
+                totalPages = Math.ceil(data.page_info.total_results / resultsPerPage);
+
+                renderPage(data.results, page);
+                renderPagination(page);
+            });
+        }
+
+        function renderPage(items) {
+            $("#news-container").empty();
+
+            items.forEach(item => {
+                // Format date MM/DD/YYYY
+                const dateObj = new Date(item.date);
+                const month = (dateObj.getMonth() + 1).toString().padStart(2, "0");
+                const day = dateObj.getDate().toString().padStart(2, "0");
+                const year = dateObj.getFullYear();
+                const formattedDate = `${month}/${day}/${year}`;
+
+                const $newsItem = $(`
+        <div class="news-item">
+          <div class="news-content">
+            <h3><a href="${item.url}" target="_blank" rel="noopener">${item.title}</a></h3>
+            <p class="news-date">${formattedDate}</p>
+            <p class="news-desc">${item.short_description || ""}</p>
+          </div>
+          ${item.thumbnail ? `<img src="${item.thumbnail}" alt="${item.title}">` : ""}
+        </div>
+      `);
+                $("#news-container").append($newsItem);
+            });
+        }
+
+        function renderPagination(current) {
+            const $pagination = $("#pagination").empty();
+
+            if (!totalPages || totalPages <= 1) {
+                return; // nothing to paginate
+            }
+
+            const maxVisible = 10;
+            let start = Math.max(1, current - Math.floor(maxVisible / 2));
+            let end = start + maxVisible - 1;
+
+            if (end > totalPages) {
+                end = totalPages;
+                start = Math.max(1, end - maxVisible + 1);
+            }
+
+            // First page
+            if (start > 1) {
+                addPageButton(1);
+                if (start > 2) $pagination.append(`<span class="ellipsis">...</span>`);
+            }
+
+            // Sliding window
+            for (let i = start; i <= end; i++) addPageButton(i);
+
+            // Last page
+            if (end < totalPages) {
+                if (end < totalPages - 1) $pagination.append(`<span class="ellipsis">...</span>`);
+                addPageButton(totalPages);
+            }
+
+            function addPageButton(i) {
+                const $btn = $(`<button class="page-btn">${i}</button>`);
+                if (i === current) $btn.prop("disabled", true);
+                $btn.on("click", function() {
+                    currentPage = i;
+                    fetchNews(currentPage, currentQuery);
+                });
+                $pagination.append($btn);
+            }
+        }
+
+        // Search button click
+        $("#search-btn").on("click", function() {
+            currentQuery = $("#search-input").val();
+            currentPage = 1;
+            fetchNews(currentPage, currentQuery);
+        });
+
+        // Allow pressing Enter in input
+        $("#search-input").on("keypress", function(e) {
+            if (e.which === 13) {
+                $("#search-btn").click();
+            }
+        });
+
+        fetchNews(currentPage);
+    });
+</script>
+
+<style>
+    #search-bar {
+        display: flex;
+        gap: 8px;
+        margin: 20px;
+    }
+
+    #search-input {
+        flex: 1;
+        padding: 8px 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 1em;
+    }
+
+    #search-btn {
+        padding: 8px 14px;
+        border: none;
+        background: #0073e6;
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1em;
+    }
+
+    #search-btn:hover {
+        background: #005bb5;
+    }
+
+    /* ---------------- NEWS CONTAINER ---------------- */
+    #news-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin: 20px;
+    }
+
+    /* ---------------- NEWS ITEM ---------------- */
+    .news-item {
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        padding: 12px;
+        background: #fff;
+        display: flex;
+        flex-direction: row; /* default: text left, image right */
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        transition: box-shadow 0.2s ease;
+    }
+
+    .news-item:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* Text container inside news item */
+    .news-content {
+        flex: 1;
+    }
+
+    /* Thumbnail image */
+    .news-item img {
+        max-width: 150px;
+        height: auto;
+        border-radius: 8px;
+        margin-left: 12px;
+        flex-shrink: 0;
+    }
+
+    /* Title */
+    .news-item h3 {
+        font-size: 1.1em;
+        margin: 0 0 6px;
+    }
+
+    .news-item h3 a {
+        color: #0073e6;
+        text-decoration: none;
+    }
+
+    .news-item h3 a:hover {
+        text-decoration: underline;
+    }
+
+    /* Date */
+    .news-date {
+        font-size: 0.85em;
+        color: #555;
+        margin: 0 0 6px;
+    }
+
+    /* Short description */
+    .news-desc {
+        font-size: 0.9em;
+        color: #666;
+    }
+
+    /* ---------------- PAGINATION ---------------- */
+    #pagination {
+        margin: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .page-btn {
+        padding: 6px 12px;
+        border: 1px solid #0073e6;
+        background: #fff;
+        color: #0073e6;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .page-btn:disabled {
+        background: #0073e6;
+        color: #fff;
+        cursor: default;
+    }
+
+    /* Ellipses for skipped pages */
+    #pagination .ellipsis {
+        padding: 6px 10px;
+        color: #666;
+        user-select: none;
+    }
+
+    /* ---------------- MOBILE RESPONSIVE ---------------- */
+    @media (max-width: 768px) {
+        .news-item {
+            flex-direction: column; /* stack text above image */
+            align-items: flex-start;
+        }
+
+        .news-item img {
+            margin-left: 0;
+            margin-top: 12px;
+            max-width: 100%; /* scale image to container width */
+            height: auto;
+        }
+
+        #pagination {
+            justify-content: center;
+        }
+
+        .page-btn {
+            padding: 6px 10px;
+            font-size: 0.9em;
+        }
+    }
+
+</style>

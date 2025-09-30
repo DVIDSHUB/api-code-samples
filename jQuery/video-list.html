@@ -1,0 +1,140 @@
+<div id="video-list"></div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // TODO: Put in your API key
+    const api_key = '3f409a28ff610c1a4cc5cec457b4ccad3ba1f16c';
+
+    // TODO: Adjust parameters to suit your needs
+    // See https://api.dvidshub.net/docs/search_api
+    var params = {
+        'q': 'tank', // q is optional and can be removed for a full list matching parameters
+        'unit': 'DVIDSHUB',
+        'type': 'video',
+        'sort': 'publishdate',
+        'sortdir': 'desc',
+        'thumb_width': 250,
+        'api_key': api_key
+    };
+
+    $(function() {
+        $.getJSON(" https://api.dvidshub.net/search", params, function(data) {
+            $.each(data.results, function(i, item) {
+                // Format duration (seconds → MM:SS)
+                var minutes = Math.floor(item.duration / 60);
+                var seconds = item.duration % 60;
+                var durationFormatted = minutes + ":" + (seconds < 10 ? "0" + seconds : seconds);
+
+                // Format date as MM/DD/YYYY
+                var dateObj = new Date(item.date);
+                var month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+                var day = dateObj.getDate().toString().padStart(2, '0');
+                var year = dateObj.getFullYear();
+                var formattedDate = month + "/" + day + "/" + year;
+
+                // Build HTML card
+                var $div = $("<div class='video-item'></div>");
+                $div.append("<img src='" + item.thumbnail + "' alt='" + item.title + "'>");
+                $div.append("<h3><a href='" + item.url + "' target='_blank' rel='noopener'>" + item.title + "</a></h3>");
+                $div.append("<p><strong>Duration:</strong> " + durationFormatted + "</p>");
+                $div.append("<p><strong>Date:</strong> " + formattedDate + "</p>");
+
+                var $desc = $("<p class='desc'>" + (item.short_description || "") + "</p>");
+                var $showMore = $("<a href='#' class='show-more'>Show More</a>");
+
+                // Wrap description in a container with fixed height initially
+                var $descWrapper = $("<div class='desc-wrapper'></div>").append($desc);
+                $div.append($descWrapper).append($showMore);
+
+                $showMore.on("click", function(e) {
+                    e.preventDefault();
+                    if ($descWrapper.hasClass("expanded")) {
+                        $descWrapper.removeClass("expanded").animate({height: "60px"}, 300);
+                        $(this).text("Show More");
+                    } else {
+                        var fullHeight = $desc.outerHeight();
+                        $descWrapper.addClass("expanded").animate({height: fullHeight + "px"}, 300);
+                        $(this).text("Show Less");
+                    }
+                });
+
+                $("#video-list").append($div);
+            });
+        });
+    });
+</script>
+
+<style>
+    #video-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 16px;
+        margin: 20px;
+    }
+
+    .video-item {
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        padding: 12px;
+        background: #fff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .video-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .video-item img {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+
+    .video-item h3 {
+        font-size: 1.1em;
+        margin: 0 0 8px;
+        color: #333;
+    }
+
+    .video-item h3 a {
+        color: #0073e6;
+        text-decoration: none;
+    }
+
+    .video-item h3 a:hover {
+        text-decoration: underline;
+    }
+
+    .video-item p {
+        margin: 4px 0;
+        font-size: 0.9em;
+        color: #555;
+    }
+
+    .video-item .desc-wrapper {
+        height: 60px; /* initial truncated height */
+        overflow: hidden;
+    }
+
+    .video-item .desc {
+        font-size: 0.85em;
+        color: #666;
+        margin-bottom: 6px;
+    }
+
+    .video-item .show-more {
+        font-size: 0.85em;
+        color: #0073e6;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .video-item .show-more:hover {
+        text-decoration: underline;
+    }
+</style>
