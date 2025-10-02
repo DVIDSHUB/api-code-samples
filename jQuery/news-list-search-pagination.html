@@ -52,18 +52,38 @@
                     const day = dateObj.getDate().toString().padStart(2, "0");
                     const year = dateObj.getFullYear();
                     const formattedDate = `${month}/${day}/${year}`;
+                    let primaryImage = undefined
 
-                    const $newsItem = $(`
-                    <a href="#">&larr; Back</a>
-                    <div class="news-item">
-                      <div class="news-content">
-                        <img src="${item.related_media.images[0].url}" alt="${item.related_media.images[0].title}" />
-                        <h3>${item.title}</h3>
-                        <p class="news-date">${formattedDate}</p>
-                        <p class="news-desc">${item.body}</p>
-                      </div>
-                    </div>
-                  `);
+                    if (typeof item.related_media !== "undefined" && typeof item.related_media.images !== "undefined") {
+                        primaryImage = item.related_media.images[0];
+                    }
+
+                    let $newsItem;
+
+                    if (primaryImage) {
+                        $newsItem = $(`
+                        <a href="#">&larr; Back</a>
+                        <div class="news-item">
+                          <div class="news-content">
+                            <img src="${primaryImage.url}" alt="${primaryImage.title}" />
+                            <h3>${item.title}</h3>
+                            <p class="news-date">${formattedDate}</p>
+                            <p class="news-desc">${item.body}</p>
+                          </div>
+                        </div>
+                      `);
+                    } else {
+                        $newsItem = $(`
+                        <a href="#">&larr; Back</a>
+                        <div class="news-item">
+                          <div class="news-content">
+                            <h3>${item.title}</h3>
+                            <p class="news-date">${formattedDate}</p>
+                            <p class="news-desc">${item.body}</p>
+                          </div>
+                        </div>
+                      `);
+                    }
                     $("#news-container").append($newsItem);
                 });
             } else {
