@@ -28,20 +28,21 @@
             'api_key': apiKey
         };
 
-        function fetchNewsById() {
+        function fetchNews() {
             // Get the fragment from the URL
             const id = window.location.hash.substring(1); // remove the '#'
 
             if (id !== "") {
-                params = {
+                var detailParams = {
                     'id': 'news:' + parseInt(id).toString(),
                     'thumb_width': 500,
                     'api_key': apiKey
                 }
 
-                $.getJSON(`https://api.dvidshub.net/asset`, params, function (data) {
+                $.getJSON(`https://api.dvidshub.net/asset`, detailParams, function (data) {
                     $("#news-container").empty();
                     $('#search-bar').hide();
+                    $('#pagination').hide();
 
                     var item = data.results;
 
@@ -53,6 +54,7 @@
                     const formattedDate = `${month}/${day}/${year}`;
 
                     const $newsItem = $(`
+                    <a href="#">&larr; Back</a>
                     <div class="news-item">
                       <div class="news-content">
                         <img src="${item.related_media.images[0].url}" alt="${item.related_media.images[0].title}" />
@@ -64,16 +66,12 @@
                   `);
                     $("#news-container").append($newsItem);
                 });
+            } else {
+                fetchNewsList();
             }
         }
 
-        // Handle fragment on page load
-        fetchNewsById();
-
-        // Handle fragment changes dynamically
-        $(window).on("hashchange", fetchNewsById);
-
-        function fetchNews(page = 1, query = '') {
+        function fetchNewsList(page = 1, query = '') {
             params['page'] = currentPage;
 
             if (query !== '') {
@@ -93,6 +91,7 @@
         function renderPage(items) {
             $('#search-bar').show();
             $("#news-container").empty();
+            $('#pagination').show();
 
             items.forEach(item => {
                 // Format date MM/DD/YYYY
@@ -101,11 +100,12 @@
                 const day = dateObj.getDate().toString().padStart(2, "0");
                 const year = dateObj.getFullYear();
                 const formattedDate = `${month}/${day}/${year}`;
+                var parsedId = item.id.split(":");
 
                 const $newsItem = $(`
         <div class="news-item">
           <div class="news-content">
-            <h3><a href="${item.url}" target="_blank" rel="noopener">${item.title}</a></h3>
+            <h3><a href="#${parsedId[1]}">${item.title}</a></h3>
             <p class="news-date">${formattedDate}</p>
             <p class="news-desc">${item.short_description || ""}</p>
           </div>
@@ -152,7 +152,7 @@
                 if (i === current) $btn.prop("disabled", true);
                 $btn.on("click", function() {
                     currentPage = i;
-                    fetchNews(currentPage, currentQuery);
+                    fetchNewsList(currentPage, currentQuery);
                 });
                 $pagination.append($btn);
             }
@@ -162,7 +162,7 @@
         $("#search-btn").on("click", function() {
             currentQuery = $("#search-input").val();
             currentPage = 1;
-            fetchNews(currentPage, currentQuery);
+            fetchNewsList(currentPage, currentQuery);
         });
 
         // Allow pressing Enter in input
@@ -172,7 +172,10 @@
             }
         });
 
-        fetchNews(currentPage);
+        fetchNews();
+
+        // Handle fragment changes dynamically
+        $(window).on("hashchange", fetchNews);
     });
 </script>
 
